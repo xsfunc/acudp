@@ -370,6 +370,38 @@ func NewAdminCommand(data string) (*AdminCommand, error) {
 	}, nil
 }
 
+type GetCarInfo struct {
+	EventType uint8
+	CarID     uint8
+}
+
+func (GetCarInfo) Event() Event {
+	return EventGetCarInfo
+}
+
+func NewGetCarInfo(carID CarID) *GetCarInfo {
+	return &GetCarInfo{
+		EventType: uint8(EventGetCarInfo),
+		CarID:     uint8(carID),
+	}
+}
+
+type SetSessionInfo struct {
+	EventType   uint8
+	SessionInfo SessionInfo
+}
+
+func (SetSessionInfo) Event() Event {
+	return EventSetSessionInfo
+}
+
+func NewSetSessionInfo(sessionInfo SessionInfo) *SetSessionInfo {
+	return &SetSessionInfo{
+		EventType:   uint8(EventSetSessionInfo),
+		SessionInfo: sessionInfo,
+	}
+}
+
 // Helper functions
 
 func sanitizeString(s string) string {

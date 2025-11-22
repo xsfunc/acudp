@@ -318,6 +318,76 @@ func (asu *AssettoServerUDP) SendMessage(message Message) error {
 
 	case *KickUser:
 		return asu.writeMessage(a.EventType, a.CarID)
+
+	case *GetCarInfo:
+		return asu.writeMessage(a.EventType, a.CarID)
+
+	case *SetSessionInfo:
+		// Helper to encode string with 1-byte length prefix
+		encodeString := func(s string) ([]byte, error) {
+			if len(s) > 255 {
+				s = s[:255]
+			}
+			b := []byte(s)
+			return append([]byte{uint8(len(b))}, b...), nil
+		}
+
+		// Helper to encode string as UTF-32 with 1-byte length prefix (length in characters)
+		encodeStringW := func(s string) ([]byte, error) {
+			// Convert to UTF-32
+			b, err := encodeUTF32(s)
+			if err != nil {
+				return nil, err
+			}
+			// Length is number of characters (bytes / 4)
+			l := len(b) / 4
+			if l > 255 {
+				l = 255
+				b = b[:255*4]
+			}
+			return append([]byte{uint8(l)}, b...), nil
+		}
+
+		serverNameBytes, err := encodeStringW(a.SessionInfo.ServerName)
+		if err != nil {
+			return err
+		}
+		trackBytes, err := encodeString(a.SessionInfo.Track)
+		if err != nil {
+			return err
+		}
+		trackConfigBytes, err := encodeString(a.SessionInfo.TrackConfig)
+		if err != nil {
+			return err
+		}
+		nameBytes, err := encodeString(a.SessionInfo.Name)
+		if err != nil {
+			return err
+		}
+		weatherBytes, err := encodeString(a.SessionInfo.WeatherGraphics)
+		if err != nil {
+			return err
+		}
+
+		return asu.writeMessage(
+			a.EventType,
+			a.SessionInfo.Version,
+			a.SessionInfo.SessionIndex,
+			a.SessionInfo.CurrentSessionIndex,
+			a.SessionInfo.SessionCount,
+			serverNameBytes,
+			trackBytes,
+			trackConfigBytes,
+			nameBytes,
+			a.SessionInfo.Type,
+			a.SessionInfo.Time,
+			a.SessionInfo.Laps,
+			a.SessionInfo.WaitTime,
+			a.SessionInfo.AmbientTemp,
+			a.SessionInfo.RoadTemp,
+			weatherBytes,
+			a.SessionInfo.ElapsedMilliseconds,
+		)
 	}
 
 	return errors.New("udp: invalid message type")
