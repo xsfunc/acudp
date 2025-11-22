@@ -17,8 +17,8 @@ func main() {
 	// Define the server configuration
 	config := acudp.ServerConfig{
 		Addr:        "127.0.0.1", // Address of the AC server (usually localhost if running locally)
-		ReceivePort: 9996,        // Port to receive data from AC server
-		SendPort:    9996,        // Port to send data to AC server
+		ReceivePort: 12000,       // Port to receive data from AC server (UDP_PLUGIN_ADDRESS port)
+		SendPort:    11000,       // Port to send data to AC server (UDP_PLUGIN_LOCAL_PORT)
 		// Optional: Forwarding configuration
 		// Forward:           true,
 		// ForwardAddrStr:    "127.0.0.1:9997",
@@ -28,6 +28,10 @@ func main() {
 	// Define the callback function to handle incoming messages
 	callback := func(msg acudp.Message) {
 		switch m := msg.(type) {
+		case acudp.CollisionWithEnvironment:
+			fmt.Printf("Collision with environment: ID=%d, Impact Speed=%v, RelPos=%v\n", m.CarID, m.ImpactSpeed, m.RelPos)
+		case acudp.LapCompleted:
+			fmt.Printf("Lap Completed: ID=%d, Time=%d\n", m.CarID, m.LapTime)
 		case acudp.CarUpdate:
 			fmt.Printf("Car Update: ID=%d, RPM=%d, Velocity=%v\n", m.CarID, m.EngineRPM, m.Velocity)
 		case acudp.SessionInfo:
@@ -50,7 +54,7 @@ func main() {
 		case acudp.ServerError:
 			fmt.Printf("Server Error: %v\n", m)
 		default:
-			// fmt.Printf("Received message: %T\n", m)
+			fmt.Printf("Received message: %T\n", m)
 		}
 	}
 
@@ -59,12 +63,10 @@ func main() {
 	if err != nil {
 		logrus.Fatalf("Failed to create server client: %v", err)
 	}
-
 	// Ensure the client is closed when the program exits
 	defer client.Close()
 
 	fmt.Println("AC UDP Client started. Press Ctrl+C to exit.")
-
 	// Wait for interrupt signal to gracefully shutdown
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
